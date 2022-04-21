@@ -1,0 +1,21 @@
+<body></body>
+<script src="https://unpkg.com/vue"></script>
+<script>
+  const { ref, createApp } = Vue
+  const count = ref(0)
+  console.log(count)
+
+  const str = ref('后悔')
+  console.log(str)
+
+  /*
+    如上打印出来的信息不是很直观
+
+    当然,我们可以打印  count.value 的值,
+
+    vue 为我们提供的控制台打印格式, vue 源码中 runtime-core/src/customFormatter.ts 暴露了 initCustomFormatter 方法用来格式化打印的
+
+    以 Chorme 为例, f12 打开调试 , 点击右上角的 设置 图标
+      找到 Console , 勾选 Enable custom formatters, 刷新浏览器, 查看控制台打印
+  */
+</script>

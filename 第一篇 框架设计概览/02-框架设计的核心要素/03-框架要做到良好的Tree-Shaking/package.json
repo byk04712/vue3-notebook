@@ -1,0 +1,14 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "description": "想要实现Tree-Shaking,模块必须是 ESM (ES Module)",
+  "main": "input.js",
+  "scripts": {
+    "rollup": "npx rollup -c rollup.config.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "rollup": "^2.70.2"
+  }
+}
