@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    /*
+      假设有如下模版
+      <div id="foo" :class="cls"></div>
+
+      编译成
+      render() {
+        return {
+          tag: 'div',
+          props: {
+            id: 'foo',
+            class: cls
+          },
+          patchFlags: 1 // 假设数字 1 代表 class 是动态的
+        }
+      }
+    */
+  </script>
+</body>
+</html>
