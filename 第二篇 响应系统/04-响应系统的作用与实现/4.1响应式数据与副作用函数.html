@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    // 副作用函数
+    function effect() {
+      document.body.innerText = 'hello vue3'
+    }
+
+
+    let val = 1 // 全局变量
+    // 副作用函数
+    function effect() {
+      val = 2 // 修改全局变量,产生副作用
+    }
+
+
+    const obj = { text: 'hello world' }
+    function effect() {
+      // effect 函数的执行会读取 obj.text
+      document.body.innerText = obj.text
+    }
+  </script>
+</body>
+</html>

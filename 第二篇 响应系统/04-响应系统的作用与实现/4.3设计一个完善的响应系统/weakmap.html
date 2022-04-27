@@ -1,0 +1,17 @@
+<script>
+  const map = new Map()
+  const weakMap = new WeakMap()
+
+  window.onload = function () {
+    const foo = { foo: 1 }
+    const bar = { foo: 2 }
+
+    map.set(foo, 1)
+    weakMap.set(bar, 2)
+  }
+
+  setTimeout(() => {
+    console.log('map ', map)
+    console.log('weakMap ', weakMap)
+  }, 500)
+</script>

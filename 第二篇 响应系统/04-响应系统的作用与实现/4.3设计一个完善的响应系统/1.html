@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    // 用一个全局变量存储被注册的副作用函数
+    let activeEffect
+    // effect 函数用于注册副作用函数
+    function effect(fn) {
+      // 当调用 effect 注册副作用函数时, 将副作用函数 fn 赋值给 activeEffect
+      activeEffect = fn
+      // 执行副作用函数
+      fn()
+    }
+
+    const data = { text: 'hello world' }
+
+    const bucket = new Set()
+
+    const obj = new Proxy(data, {
+      get(target, key) {
+        // 将 activeEffect 中存储的副作用函数收集到 “桶” 中
+        if (activeEffect) {
+          bucket.add(activeEffect)
+        }
+        return target[key]
+      },
+      set(target, key, newVal) {
+        target[key] = newVal
+        bucket.forEach(fn => fn())
+        return true
+      }
+    })
+
+    // 注册一个匿名的副作用函数
+    effect(() => {
+      document.body.innerText = obj.text
+    })
+  </script>
+</body>
+</html>
