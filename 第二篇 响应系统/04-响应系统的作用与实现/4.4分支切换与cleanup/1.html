@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    let activeEffect
+    function effect(fn) {
+      activeEffect = fn
+      fn()
+    }
+
+    const bucket = new WeakMap()
+    function trace(target, key) {
+      if (!activeEffect) return
+      let depsMap = bucket.get(target)
+      if (!depsMap) {
+        bucket.set(target, (depsMap = new Map()))
+      }
+      let deps = depsMap.get(key)
+      if (!deps) {
+        depsMap.set(key, (deps = new Set()))
+      }
+      deps.add(activeEffect)
+    }
+
+    function triger(target, key) {
+      const depsMap = bucket.get(target)
+      if (!depsMap) return
+
+      const effects = depsMap.get(key)
+      effects && effects.forEach(fn => fn())
+    }
+
+
+
+    const data = { ok: true, text: 'hello world'}
+    const obj = new Proxy(data, {
+      get(target, key) {
+        trace(target, key)
+        return target[key]
+      },
+      set(target, key, newVal) {
+        target[key] = newVal
+        triger(target, key)
+      }
+    })
+
+    // 桶内结构
+    // data
+    //   - ok
+    //     - effectFn
+    //   - text
+    //     - effectFn
+    
+    effect(function effectFn() {
+      console.log('run effect')
+      document.body.innerText = obj.ok ? obj.text : 'not'
+    })
+
+    // 将 obj.ok 设置为 false 之后, 按理 obj.text 将不再有依赖收集
+    // 此时 obj.text = ‘hello vue' 修改 text 属性, 发现 effectFn 还是执行了
+
+    // 解决此问题的思路就是,每次 副作用函数执行时, 先把它与之关联的依赖集合删除
+  </script>
+</body>
+</html>
