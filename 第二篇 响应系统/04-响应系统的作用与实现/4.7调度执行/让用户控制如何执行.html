@@ -8,39 +8,35 @@
 </head>
 <body>
   <script>
-    // 全局变量存储当前激活的 effect 函数
     let activeEffect
-    // effect 栈
     const effectStack = []
-
-    function effect(fn) {
-      // 包裹副作用函数
+    function effect(
+      fn,
+      // 添加第二个参数
+      options = {}
+    ) {
       const effectFn = () => {
-        // 清空之前的依赖
         cleanup(effectFn)
-        // 当调用 effect 注册副作用函数时,将副作用函数复制给 activeEffect
         activeEffect = effectFn
-        // 在调用副作用函数之前将当前副作用函数压入栈中
-        effectStack.push(effectFn)
+        effectStack.push(activeEffect)
         fn()
-        // 在当前副作用函数执行完毕后,将当前副作用函数弹出栈,并把 activeEffect 还原为之前的值
         effectStack.pop()
         activeEffect = effectStack[effectStack.length - 1]
       }
-      // 用于存储所有与该副作用函数相关的依赖集合
+      // 将 options 挂载到 effectFn 上
+      effectFn.options = options
       effectFn.deps = []
-      // 执行副作用函数
       effectFn()
     }
 
     function cleanup(effectFn) {
-      for (let i = 0; i < effectFn.deps.length; i++) {
+      for(let i = 0, len = effectFn.deps.length; i < len; i++) {
         const deps = effectFn.deps[i]
         deps.delete(effectFn)
       }
       effectFn.deps.length = 0
     }
-    
+
     const bucket = new WeakMap()
     function track(target, key) {
       if (!activeEffect) return
@@ -62,21 +58,25 @@
       if (!depsMap) return
 
       const effects = depsMap.get(key)
-      
-      // const effectsToRun = new Set(effects)
-      // 解决办法如下 (如果trigger触发执行的副作用函数和当前执行的副作用函数相同,则不触发执行)
       const effectsToRun = new Set()
-      effects && effects.forEach((effect) => {
-        if (effect !== activeEffect) {
-          effectsToRun.add(effect)
+      effects && effects.forEach((effectFn) => {
+        if (effectFn !== activeEffect) {
+          effectsToRun.add(effectFn)
         }
       })
-      
-      effectsToRun.forEach(fn => fn())
+      // effectsToRun.forEach(fn => fn())
+      effectsToRun.forEach(effectFn => {
+        // 如果一个副作用函数存在调度器,则调用该调度器,并将副作用函数作为参数传递
+        if (effectFn.options.scheduler) {
+          effectFn.options.scheduler(effectFn)
+        } else {
+          // 没有提供则按之前的行为来
+          effectFn()
+        }
+      })
     }
     
     const data = { foo: 1 }
-
     const obj = new Proxy(data, {
       get(target, key) {
         track(target, key)
@@ -89,14 +89,24 @@
       }
     })
 
-    /*
-      // 内存溢出
-      分析原因: 在这个 effect 中,既会读取 obj.foo 的值, 又会设置 obj.foo 的值
-      首先读取 obj.foo 的值,触发 track,将当前副作用函数收集到桶中,
-      接着将其加1后再赋值给obj.foo, 此时会触发 trigger 操作,即把桶中的副作用函数取出并执行.
-      但问题是该副作用函数正在执行中,还没有执行完毕,就要开始下一次的执行,导致无限递归调用自己
-     */
-    effect(() => obj.foo++)
+    effect(() => {
+      console.log(obj.foo)
+    },
+    // options
+    {
+      // 调度器 scheduler 是一个函数
+      scheduler(fn) {
+        // 将副作用函数放到宏任务里面执行
+        setTimeout(fn)
+      }
+    })
+
+    obj.foo++
+
+    console.log('结束了')
+    // 输出 1 2 结束了
+
+    // 现假设需求有变,在不调整代码顺序的情况下,输出顺序调整为 1 结束了 2
   </script>
 </body>
 </html>

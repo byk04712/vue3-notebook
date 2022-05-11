@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    let activeEffect
+    let effectStack = []
+    function effect(fn, options = {}) {
+      const effectFn = () => {
+        cleanup(effectFn)
+        activeEffect = effectFn
+        effectStack.push(activeEffect)
+        const res = fn()
+        effectStack.pop()
+        activeEffect = effectStack[effectStack.length - 1]
+        return res
+      }
+
+      effectFn.deps = []
+      effectFn.options = options
+
+      // 只有非 lazy 的时候才执行
+      if (!options.lazy) {
+        // 执行副作用函数
+        effectFn()
+      }
+      // 将副作用函数作为返回值返回
+      return effectFn
+    }
+
+    function cleanup(effectFn) {
+      for (let i = 0; i < effectFn.deps.length; i++) {
+        const deps = effectFn.deps[i]
+        deps.delete(effectFn)
+      }
+      effectFn.deps.length = 0
+    }
+
+    const bucket = new WeakMap()
+    function track(target, key) {
+      if (!activeEffect) return
+
+      let depsMap = bucket.get(target)
+      if (!depsMap) {
+        bucket.set(target, (depsMap = new Map()))
+      }
+      let deps = depsMap.get(key)
+      if (!deps) {
+        depsMap.set(key, (deps = new Set()))
+      }
+      deps.add(activeEffect)
+      activeEffect.deps.push(deps)
+    }
+
+    function trigger(target, key) {
+      const depsMap = bucket.get(target)
+      if (!depsMap) return
+
+      const effects = depsMap.get(key)
+      const effectsToRun = new Set()
+      effects && effects.forEach((effectFn) => {
+        if (effectFn !== activeEffect) {
+          effectsToRun.add(effectFn)
+        }
+      })
+      effectsToRun.forEach((effectFn) => {
+        if (effectFn.options.scheduler) {
+          effectFn.options.scheduler(effectFn)
+        } else {
+          effectFn()
+        }
+      })
+    }
+
+    const data = { foo: 1, bar: 100 }
+    const obj = new Proxy(data, {
+      get(target, key) {
+        track(target, key)
+        return target[key]
+      },
+      set(target, key, newVal) {
+        target[key] = newVal
+        trigger(target, key)
+        return true
+      }
+    })
+
+    // const effectFn = effect(() => {
+    //   console.log(obj.foo)
+    // }, {
+    //   lazy: true
+    // })
+
+    // 手动执行副作用函数, 仅仅能够手动执行副作用函数,其意义并不大
+    // effectFn()
+
+
+
+
+    /*
+    const effectFn = effect(
+      () => obj.foo + obj.bar,
+      { lazy: true }
+    )
+    // value 是 getter 的返回值
+    const value = effectFn()
+    console.log(value)
+    */
+
+
+
+
+    function computed(getter) {
+      // 把 getter 作为副作用函数,创建一个 lazy 的 effect
+      const effectFn = effect(getter, {
+        lazy: true
+      })
+
+      const obj = {
+        // 当读取 value 时才执行 effectFn
+        get value() {
+          return effectFn()
+        }
+      }
+
+      return obj
+    }
+
+    const sumRes = computed(() => obj.foo + obj.bar)
+    console.log(sumRes.value)
+  </script>
+</body>
+</html>
